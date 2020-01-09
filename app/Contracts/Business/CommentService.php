@@ -13,10 +13,10 @@ namespace App\Contracts\Business;
 interface CommentService
 {
     //fetch all comments of a post
-    public function fetchPostComments($paging_info=20);
+    public function fetchPostComments($post_id, $paging_info=20);
 
     //fetch all comments of a user
-    public function fetchUserComments($user, $paging_info=20);
+    public function fetchUserComments($user_id, $paging_info=20);
 
     //create a comment
     public function createComment($request);

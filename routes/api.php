@@ -55,4 +55,10 @@ Route::group(['middleware' => 'auth:api', 'prefix' => 'profile', 'name' => 'api.
 //Comment Router
 Route::group(['middleware' => 'auth:api', 'prefix' => 'comment', 'name' => 'api.comment.'], function () {
     Route::post("/create", ["name" => "create", "uses" => "Api\\CommentsController@create"]);
+    Route::post("/edit", ["name" => "edit", "uses" => "Api\\CommentsController@edit"]);
+});
+
+Route::group(['prefix' => 'comment', 'name' => 'api.comment.'], function () {
+    Route::get("/postComments/{id}", ["name" => "postComments", "uses" => "Api\\CommentsController@fetchPostComments"]);
+    Route::get("/userComments/{id}", ["name" => "userComments", "uses" => "Api\\CommentsController@fetchUserComments"]);
 });

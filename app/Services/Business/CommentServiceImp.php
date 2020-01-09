@@ -17,13 +17,34 @@ use App\Contracts\Constant;
 class CommentServiceImp implements CommentService{
 
         //fetch all comments of a post
-        public function fetchPostComments($paging_info=20){
+        public function fetchPostComments($post_id, $paging_info=20){
+            
+            $query = DB::table("comments")
+                     ->select('comments.id', 'comments.title', 'comments.content', 'comments.user_id', 'comments.post_id', 'comments.status', 'users.name', 'comments.created_at')
+                     ->join('users','users.id','=','comments.user_id')
+                     ->where('comments.post_id','=', $post_id)
+                     ->where('comments.status', '=', Constant::STATUS_ACTIVATED)
+                     ->where('users.status', '=', Constant::STATUS_ACTIVATED)
+                     ->orderBy('comments.created_at','desc')
+                     ->paginate($paging_info);
+
+            return $query;
 
         }
 
         //fetch all comments of a user
-        public function fetchUserComments($user, $paging_info=20){
+        public function fetchUserComments($user_id, $paging_info=20){
 
+            $query = DB::table("comments")
+                     ->select('comments.id', 'comments.title', 'comments.content', 'comments.user_id', 'comments.post_id', 'comments.status', 'posts.title as post_title', 'comments.created_at')
+                     ->join('posts','posts.id','=','comments.post_id')
+                     ->where('comments.user_id','=', $user_id)
+                     ->where('comments.status', '=', Constant::STATUS_ACTIVATED)
+                     ->where('posts.status', Constant::STATUS_ACTIVATED)
+                     ->orderBy('comments.created_at','desc')
+                     ->paginate($paging_info);
+
+            return $query;
         }
     
         //create a comment
@@ -48,6 +69,8 @@ class CommentServiceImp implements CommentService{
                 $comment->post()->associate($post);
 
                 if($target_comment) $comment->commentedOn()->associate($target_comment);
+
+                $comment->save();
             }
 
             return $comment;
@@ -56,6 +79,18 @@ class CommentServiceImp implements CommentService{
     
         //edit a given comment
         public function editComment($request){
+
+            $user = Auth::user();
+
+            $comment = Comment::find($request->get("id"));
+
+            if($user->id != $comment->user_id) return null;
+
+            $update_info = array('title'=>$request->get("title"), 'content'=>$request->get("content"));
+
+            $comment = $comment->update($update_info);
+
+            return $comment;
 
         }
     

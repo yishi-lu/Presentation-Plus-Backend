@@ -14,21 +14,21 @@ class Comment extends Model
 
     public function user()
     {
-        return $this->belongsTo(User::class)->withTimestamps();
+        return $this->belongsTo(User::class);
     }
 
     public function post()
     {
-        return $this->belongsTo(Post::class)->withTimestamps();
+        return $this->belongsTo(Post::class);
     }
 
     public function commentedOn()
     {
-        return $this->belongsTo(Comment::class)->withTimestamps();
+        return $this->belongsTo(Comment::class);
     }
 
     public function haveComment()
     {
-        return $this->hasMany(Comment::class)->withTimestamps();
+        return $this->hasMany(Comment::class);
     }
 }
