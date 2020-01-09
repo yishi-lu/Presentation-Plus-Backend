@@ -1,0 +1,20 @@
+POST:
+ID, Title, Description, Type (Normal Paragraphs/Slides), Content, Status, Visibility, Viewed_num, Like_num, Time
+Belong to: user
+Has many: Slides, Comments
+
+Slides:
+ID, Image_URL, Description, Status,Time
+Belong to: Post
+
+Category:
+ID, Type, Time
+
+Profile:
+ID, Title, Description, Image_URL, Time
+Belong to: user
+
+Many to Many:
+POST - Category
+Profile - User
+POST - User
