@@ -12,7 +12,7 @@ class Post extends Model
     
     public function user()
     {
-        return $this->belongsTo(User::class)->withTimestamps();
+        return $this->belongsTo(User::class);
     }
 
     public function post_image()
