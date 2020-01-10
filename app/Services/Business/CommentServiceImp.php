@@ -2,6 +2,7 @@
 
 namespace App\Services\Business;
 
+use Illuminate\Pagination\LengthAwarePaginator;
 use App\Contracts\Business\CommentService;
 use App\User; 
 use App\Post; 
@@ -17,18 +18,53 @@ use App\Contracts\Constant;
 class CommentServiceImp implements CommentService{
 
         //fetch all comments of a post
-        public function fetchPostComments($post_id, $paging_info=20){
+        public function fetchPostComments($post_id, $current_page=1, $paging_info=20){
             
             $query = DB::table("comments")
-                     ->select('comments.id', 'comments.title', 'comments.content', 'comments.user_id', 'comments.post_id', 'comments.status', 'users.name', 'comments.created_at')
+                     ->select('comments.id', 'comments.title', 'comments.content', 'comments.liked', 'comments.user_id', 'comments.post_id', 'comments.status', 'users.name', 'profiles.portrait', 'comments.created_at')
                      ->join('users','users.id','=','comments.user_id')
+                     ->join('profiles','profiles.user_id','=','users.id')
+                     ->where('comments.comment_id', '=', null)
                      ->where('comments.post_id','=', $post_id)
                      ->where('comments.status', '=', Constant::STATUS_ACTIVATED)
                      ->where('users.status', '=', Constant::STATUS_ACTIVATED)
                      ->orderBy('comments.created_at','desc')
-                     ->paginate($paging_info);
+                     ->get();
 
-            return $query;
+                    //  $query = $query->paginate($paging_info);
+
+
+            foreach($query as $item){
+                $id = $item->id;
+                $sub_comments = DB::table("comments")
+                               ->select('comments.id', 'comments.comment_id', 'comments.title', 'comments.content', 'comments.liked', 'comments.user_id', 'comments.post_id', 'comments.status', 'users.name', 'profiles.portrait', 'comments.created_at')
+                               ->join('users','users.id','=','comments.user_id')
+                               ->join('profiles','profiles.user_id','=','users.id')
+                               ->where('comments.comment_id', '=', $id)
+                               ->where('comments.status', '=', Constant::STATUS_ACTIVATED)
+                               ->where('users.status', '=', Constant::STATUS_ACTIVATED)
+                               ->orderBy('comments.created_at','desc')
+                               ->paginate(5);
+                
+                if($sub_comments != null) $item->sub_comments = $sub_comments;
+
+            }
+
+            //pagination on collection
+            $page = $current_page;
+            $perPage = $paging_info;
+            $pagination = new LengthAwarePaginator(
+                $query->forPage($page, $perPage), 
+                $query->count(), 
+                $perPage, 
+                $page,
+                [
+                    'path' => LengthAwarePaginator::resolveCurrentPath(),
+                    'pageName' => "page",
+                ]
+            );
+
+            return $pagination;
 
         }
 
@@ -36,7 +72,7 @@ class CommentServiceImp implements CommentService{
         public function fetchUserComments($user_id, $paging_info=20){
 
             $query = DB::table("comments")
-                     ->select('comments.id', 'comments.title', 'comments.content', 'comments.user_id', 'comments.post_id', 'comments.status', 'posts.title as post_title', 'comments.created_at')
+                     ->select('comments.id', 'comments.title', 'comments.content', 'comments.liked', 'comments.user_id', 'comments.post_id', 'comments.status', 'posts.title as post_title', 'comments.created_at')
                      ->join('posts','posts.id','=','comments.post_id')
                      ->where('comments.user_id','=', $user_id)
                      ->where('comments.status', '=', Constant::STATUS_ACTIVATED)
@@ -68,7 +104,7 @@ class CommentServiceImp implements CommentService{
                 $comment->user()->associate($user);
                 $comment->post()->associate($post);
 
-                if($target_comment) $comment->commentedOn()->associate($target_comment);
+                if($target_comment) $comment->comment_id = $target_comment->id;
 
                 $comment->save();
             }

@@ -64,9 +64,11 @@ class CommentsController extends Controller
 
     }
 
-    public function fetchPostComments($id){
+    public function fetchPostComments($id, Request $request){
 
-        $comment = $this->service->fetchPostComments($id);
+        $current_page = $request->get("page");
+
+        $comment = $this->service->fetchPostComments($id, $current_page);
 
         if($comment){
             // Log::debug('User with id: '.$user->id.', name: '.$user->name.' edit comment successfully');
