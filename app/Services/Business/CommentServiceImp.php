@@ -60,7 +60,7 @@ class CommentServiceImp implements CommentService{
                 $page,
                 [
                     'path' => LengthAwarePaginator::resolveCurrentPath(),
-                    'pageName' => "page",
+                    'pageName' => "mainCommentPage",
                 ]
             );
 

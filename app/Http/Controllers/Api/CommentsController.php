@@ -66,7 +66,7 @@ class CommentsController extends Controller
 
     public function fetchPostComments($id, Request $request){
 
-        $current_page = $request->get("page");
+        $current_page = $request->get("mainCommentPage");
 
         $comment = $this->service->fetchPostComments($id, $current_page);
 
