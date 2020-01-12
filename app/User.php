@@ -70,4 +70,8 @@ class User extends Authenticatable
     {
         return $this->hasMany(Comment::class)->orderBy('created_at', 'DESC');
     }
+    
+    public function thumbed(){
+        return $this->belongsToMany(Comment::class)->withTimestamps();;
+    }
 }

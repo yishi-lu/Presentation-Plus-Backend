@@ -28,6 +28,6 @@ interface CommentService
     public function deleteComment($request);
 
     //like a comment
-    public function likeComment($id);
+    public function likeComment($comment_id);
 
 }

@@ -20,7 +20,6 @@ class CreateCommentsTable extends Migration
             $table->unsignedBigInteger('comment_id')->nullable(); //FK
             $table->string('title');
             $table->text('content');
-            $table->integer('liked');
             $table->tinyInteger('status')->default(\App\Contracts\Constant::STATUS_ACTIVATED);
             $table->timestamps();
 

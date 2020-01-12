@@ -167,11 +167,13 @@ class BusinessServiceImp implements BusinessService
 
         $auth_user = Auth::guard('api')->user();
 
-        $is_follow = DB::table('profile_user')
-                     ->select('user_id', 'prifle_id')
-                     ->where('user_id', '=', $post->user_id)
-                     ->where('profile_id', '=', $auth_user->profile->id)
-                     ->count();
+        if($auth_user)
+            $is_follow = DB::table('profile_user')
+                        ->select('user_id', 'prifle_id')
+                        ->where('user_id', '=', $post->user_id)
+                        ->where('profile_id', '=', $auth_user->profile->id)
+                        ->count();
+        else $is_follow = 0;
 
         if($auth_user && ($is_follow > 0 || $auth_user->id == $post->user_id || ($auth_user->role == CONSTANT::ROLE_SUPER_ADMIN || $auth_user->role == CONSTANT::ROLE_ADMIN))){
             return $post;

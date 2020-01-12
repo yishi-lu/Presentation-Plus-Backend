@@ -19,9 +19,9 @@ class CommentServiceImp implements CommentService{
 
         //fetch all comments of a post
         public function fetchPostComments($post_id, $current_page=1, $paging_info=20){
-            
+
             $query = DB::table("comments")
-                     ->select('comments.id', 'comments.title', 'comments.content', 'comments.liked', 'comments.user_id', 'comments.post_id', 'comments.status', 'users.name', 'profiles.portrait', 'comments.created_at')
+                     ->select('comments.id', 'comments.title', 'comments.content', 'comments.user_id', 'comments.post_id', 'comments.status', 'users.name', 'profiles.portrait', 'comments.created_at')
                      ->join('users','users.id','=','comments.user_id')
                      ->join('profiles','profiles.user_id','=','users.id')
                      ->where('comments.comment_id', '=', null)
@@ -32,12 +32,33 @@ class CommentServiceImp implements CommentService{
                      ->get();
 
                     //  $query = $query->paginate($paging_info);
-
+            
 
             foreach($query as $item){
+
+                $user = Auth::guard('api')->user();
+
                 $id = $item->id;
+
+                $count_liked = DB::table("comment_user")
+                               ->select("id")
+                               ->where("comment_id", "=", $id)
+                               ->count();
+
+                $item->liked = $count_liked;
+
+                if($user){
+                    $is_liked = DB::table("comment_user")
+                                ->select("id")
+                                ->where("comment_id", "=", $id)
+                                ->where("user_id", "=", $user->id)
+                                ->count();
+                            
+                    $item->is_liked = $is_liked;
+                }
+
                 $sub_comments = DB::table("comments")
-                               ->select('comments.id', 'comments.comment_id', 'comments.title', 'comments.content', 'comments.liked', 'comments.user_id', 'comments.post_id', 'comments.status', 'users.name', 'profiles.portrait', 'comments.created_at')
+                               ->select('comments.id', 'comments.comment_id', 'comments.title', 'comments.content', 'comments.user_id', 'comments.post_id', 'comments.status', 'users.name', 'profiles.portrait', 'comments.created_at')
                                ->join('users','users.id','=','comments.user_id')
                                ->join('profiles','profiles.user_id','=','users.id')
                                ->where('comments.comment_id', '=', $id)
@@ -46,7 +67,33 @@ class CommentServiceImp implements CommentService{
                                ->orderBy('comments.created_at','desc')
                                ->paginate(5);
                 
-                if($sub_comments != null) $item->sub_comments = $sub_comments;
+                if($sub_comments != null) {
+
+                    foreach($sub_comments as $sub){
+                        $sub_id = $sub->id;
+
+                        $count_liked = DB::table("comment_user")
+                                        ->select("id")
+                                        ->where("comment_id", "=", $sub_id)
+                                        ->count();
+
+                        $sub->liked = $count_liked;
+
+                        if($user){
+                            $is_liked = DB::table("comment_user")
+                                        ->select("id")
+                                        ->where("comment_id", "=", $sub_id)
+                                        ->where("user_id", "=", $user->id)
+                                        ->count();
+                            
+                            $sub->is_liked = $is_liked;
+                        }
+
+                    }
+
+                    $item->sub_comments = $sub_comments;
+
+                }
 
             }
 
@@ -72,7 +119,7 @@ class CommentServiceImp implements CommentService{
         public function fetchUserComments($user_id, $paging_info=20){
 
             $query = DB::table("comments")
-                     ->select('comments.id', 'comments.title', 'comments.content', 'comments.liked', 'comments.user_id', 'comments.post_id', 'comments.status', 'posts.title as post_title', 'comments.created_at')
+                     ->select('comments.id', 'comments.title', 'comments.content', 'comments.user_id', 'comments.post_id', 'comments.status', 'posts.title as post_title', 'comments.created_at')
                      ->join('posts','posts.id','=','comments.post_id')
                      ->where('comments.user_id','=', $user_id)
                      ->where('comments.status', '=', Constant::STATUS_ACTIVATED)
@@ -98,7 +145,6 @@ class CommentServiceImp implements CommentService{
 
                 $comment->title = $request->get("title");
                 $comment->content = $request->get("content");
-                $comment->liked = 0;
                 $comment->status = Constant::STATUS_ACTIVATED;
 
                 $comment->user()->associate($user);
@@ -136,8 +182,11 @@ class CommentServiceImp implements CommentService{
         }
     
         //like a comment
-        public function likeComment($id){
+        public function likeComment($comment_id){
 
+            $comment = Comment::findOrFail($comment_id);
+
+            return auth()->user()->thumbed()->toggle($comment);
         }
 
 }

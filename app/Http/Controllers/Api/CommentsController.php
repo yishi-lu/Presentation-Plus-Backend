@@ -98,6 +98,22 @@ class CommentsController extends Controller
         }
     }
 
+    public function likeComment(Request $request){
+
+        $comment = $this->service->likeComment($request->get('comment_id'));
+
+        if($comment){
+            // Log::debug('User with id: '.$user->id.', name: '.$user->name.' edit comment successfully');
+
+            return response()->json(['success'=>$comment], $this->successStatus); 
+        }
+        else {
+            // Log::debug('User with id: '.$user->id.', name: '.$user->name.' failed to edit comment ');
+
+            return response()->json(['message'=>['Failed to like comment']], 401);
+        }
+    }
+
     protected function commentValidator(Request $request){
 
         $this->validate($request, [

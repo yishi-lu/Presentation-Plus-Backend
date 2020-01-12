@@ -31,4 +31,9 @@ class Comment extends Model
     {
         return $this->hasMany(Comment::class);
     }
+
+    public function thumbedBy(){
+        
+        return $this->belongsToMany(User::class)->withTimestamps();
+    }
 }

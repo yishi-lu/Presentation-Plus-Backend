@@ -56,6 +56,7 @@ Route::group(['middleware' => 'auth:api', 'prefix' => 'profile', 'name' => 'api.
 Route::group(['middleware' => 'auth:api', 'prefix' => 'comment', 'name' => 'api.comment.'], function () {
     Route::post("/create", ["name" => "create", "uses" => "Api\\CommentsController@create"]);
     Route::post("/edit", ["name" => "edit", "uses" => "Api\\CommentsController@edit"]);
+    Route::post("/thumb", ["name" => "thumb", "uses" => "Api\\CommentsController@likeComment"]);
 });
 
 Route::group(['prefix' => 'comment', 'name' => 'api.comment.'], function () {
