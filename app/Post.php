@@ -24,4 +24,8 @@ class Post extends Model
     {
         return $this->hasMany(Comment::class)->orderBy('order', 'DESC');
     }
+
+    public function collectedBy(){
+        return $this->belongsToMany(User::class)->withTimestamps();
+    }
 }

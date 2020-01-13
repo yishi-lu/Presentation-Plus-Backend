@@ -40,7 +40,7 @@ class BusinessServiceImp implements BusinessService
                     ->where('users.status', Constant::STATUS_ACTIVATED)
                     ->where('posts.status', Constant::STATUS_ACTIVATED)
                     ->orderBy('posts.created_at','desc')
-                    ->paginate($paging_info, 'posts.id');
+                    ->paginate($paging_info);
 
         }
         else {
@@ -72,7 +72,7 @@ class BusinessServiceImp implements BusinessService
                     ->orderBy('posts.id','desc')
                     ->groupBy('posts.id')
                     ->distinct()
-                    ->paginate($paging_info, ['posts.*']);
+                    ->paginate($paging_info);
 
         }   
 
@@ -346,5 +346,72 @@ class BusinessServiceImp implements BusinessService
             return $result;
         }
         else return false;
+    }
+
+    /**
+     * collect a post by auth user
+     *
+     * @param $post_id
+     * @return bool|null
+     */
+    public function collectPost($post_id){
+
+        $post = Post::findOrFail($post_id);
+
+        return auth()->user()->collected()->toggle($post);
+    }
+
+    /**
+     * fetch all auth user collected posts
+     *
+     * @param null
+     * @return posts|null
+     */
+    public function fetchCollectedPosts(){
+
+        $auth_user = Auth::guard('api')->user();
+
+        $posts = DB::table('posts')
+                ->select('posts.id as post_id', 'posts.title', 'posts.description', 'posts.image_url', 'posts.status', 'posts.visibility', 'users.id as user_id', 'users.name'
+                        , 'profiles.id as profile_id', 'profiles.portrait')
+                // ->join('post_user', function($join) use($auth_user) {
+                //         $join->on('post_user.user_id', '=', $auth_user->id)
+                //             ->where('post_user.post_id', '=', 'posts.id');
+                //         })
+                ->join('post_user', 'post_user.post_id', '=', 'posts.id')
+                ->join('users', 'users.id', '=', 'posts.user_id')
+                ->join('profiles', 'profiles.user_id', '=', 'users.id')
+                ->where('post_user.user_id', '=', $auth_user->id)
+                ->where('posts.status', '=', Constant::STATUS_ACTIVATED)
+                ->where('posts.visibility', '!=', Constant::STATUS_PRIVATE)
+                ->get();
+
+        $followed = DB::table('profile_user')
+                    ->select('user_id')
+                    ->where('profile_id', '=', $auth_user->profile->id)
+                    ->get();
+
+        $user_id_set = collect([]);
+
+        foreach($followed as $item){
+
+            $user_id_set->push($item->user_id);
+        }
+
+        // dd($posts);
+
+        foreach($posts as $post){
+
+            if(!$user_id_set->contains($post->user_id) && $post->visibility == Constant::STATUS_FOLLOWER){
+
+                $posts->forget($post);
+
+            }
+
+
+        }
+
+        return $posts;
+
     }
 }

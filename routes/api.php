@@ -40,6 +40,8 @@ Route::group(['middleware' => 'auth:api', 'prefix' => 'post', 'name' => 'api.pos
     Route::post("/create", ["name" => "create", "uses" => "Api\\PostsController@create"]);
     Route::post("/edit", ["name" => "edit", "uses" => "Api\\PostsController@edit"]);
     Route::post("/delete", ["name" => "delete", "uses" => "Api\\PostsController@delete"]);
+    Route::post("/collect", ["name" => "collect", "uses" => "Api\\PostsController@collectPost"]);
+    Route::get("/collectList", ["name" => "collectList", "uses" => "Api\\PostsController@fetchCollectedPosts"]);
 });
 
 //Profile Router

@@ -30,5 +30,8 @@ interface BusinessService
     //delete a given post
     public function deletePost($request);
 
+    //collect a post by auth user
+    public function collectPost($post_id);
 
+    public function fetchCollectedPosts();
 }

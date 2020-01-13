@@ -138,18 +138,45 @@ class PostsController extends Controller
         }
     }
 
+    public function collectPost(Request $request){
+
+        $user = Auth::user();
+
+        $posts = $this->service->collectPost($request->get('post_id'));
+
+        if($posts){
+            Log::debug('User with id: '.$user->id.', name: '.$user->name.' posts are all fetched');
+
+            return response()->json(['success'=>$posts], $this->successStatus); 
+        }
+        else {
+            Log::debug('User with id: '.$user->id.', name: '.$user->name.' failed to fetch all posts ');
+
+            return response()->json(['message'=>['Failed to fetch post']], 401);
+        }
+    }
+
+    public function fetchCollectedPosts(){
+
+        $posts = $this->service->fetchCollectedPosts();
+
+        if($posts){
+            // Log::debug('User with id: '.$user->id.', name: '.$user->name.' posts are all fetched');
+
+            return response()->json(['success'=>$posts], $this->successStatus); 
+        }
+        else {
+            // Log::debug('User with id: '.$user->id.', name: '.$user->name.' failed to fetch all posts ');
+
+            return response()->json(['message'=>['Failed to fetch post']], 401);
+        }
+
+    }
+
     protected function postValidation(Request $request){
         $this->validate($request, [
             'title' => "required",
             'content' => "required",
         ]);
     }
-
-    protected function fetch_context_image($post_content){
-
-
-
-
-    }
-
 }

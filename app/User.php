@@ -74,4 +74,8 @@ class User extends Authenticatable
     public function thumbed(){
         return $this->belongsToMany(Comment::class)->withTimestamps();;
     }
+
+    public function collected(){
+        return $this->belongsToMany(Post::class)->withTimestamps();
+    }
 }
