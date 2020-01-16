@@ -167,13 +167,25 @@ class BusinessServiceImp implements BusinessService
 
         $auth_user = Auth::guard('api')->user();
 
-        if($auth_user)
+        if($auth_user){
             $is_follow = DB::table('profile_user')
                         ->select('user_id', 'prifle_id')
                         ->where('user_id', '=', $post->user_id)
                         ->where('profile_id', '=', $auth_user->profile->id)
                         ->count();
-        else $is_follow = 0;
+            
+            $is_collected  = DB::table('post_user')
+                            ->select('user_id', 'post_id')
+                            ->where('user_id', '=', $auth_user->id)
+                            ->where('post_id', '=', $id)
+                            ->count();
+        }
+        else {
+            $is_follow = 0;
+            $is_collected = 0;
+        }
+
+        $post->is_collected = $is_collected;
 
         if($auth_user && ($is_follow > 0 || $auth_user->id == $post->user_id || ($auth_user->role == CONSTANT::ROLE_SUPER_ADMIN || $auth_user->role == CONSTANT::ROLE_ADMIN))){
             return $post;
@@ -374,10 +386,6 @@ class BusinessServiceImp implements BusinessService
         $posts = DB::table('posts')
                 ->select('posts.id as post_id', 'posts.title', 'posts.description', 'posts.image_url', 'posts.status', 'posts.visibility', 'users.id as user_id', 'users.name'
                         , 'profiles.id as profile_id', 'profiles.portrait')
-                // ->join('post_user', function($join) use($auth_user) {
-                //         $join->on('post_user.user_id', '=', $auth_user->id)
-                //             ->where('post_user.post_id', '=', 'posts.id');
-                //         })
                 ->join('post_user', 'post_user.post_id', '=', 'posts.id')
                 ->join('users', 'users.id', '=', 'posts.user_id')
                 ->join('profiles', 'profiles.user_id', '=', 'users.id')
@@ -393,13 +401,12 @@ class BusinessServiceImp implements BusinessService
 
         $user_id_set = collect([]);
 
+        //find user who follow auth user
         foreach($followed as $item){
-
             $user_id_set->push($item->user_id);
         }
 
-        // dd($posts);
-
+        //remove STATUS_FOLLOWER posts if the user is not following auth user
         foreach($posts as $post){
 
             if(!$user_id_set->contains($post->user_id) && $post->visibility == Constant::STATUS_FOLLOWER){
