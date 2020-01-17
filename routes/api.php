@@ -42,6 +42,7 @@ Route::group(['middleware' => 'auth:api', 'prefix' => 'post', 'name' => 'api.pos
     Route::post("/delete", ["name" => "delete", "uses" => "Api\\PostsController@delete"]);
     Route::post("/collect", ["name" => "collect", "uses" => "Api\\PostsController@collectPost"]);
     Route::get("/collectList", ["name" => "collectList", "uses" => "Api\\PostsController@fetchCollectedPosts"]);
+    Route::post("/thumb", ["name" => "thumb", "uses" => "Api\\PostsController@thumbPost"]);
 });
 
 //Profile Router

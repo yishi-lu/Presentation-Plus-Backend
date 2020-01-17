@@ -13,10 +13,10 @@ namespace App\Contracts\Business;
 interface BusinessService
 {
     //fetch all posts in database, filter and order can be applied
-    public function fetchAllPosts($filter=null, $order=null, $paging_info=2);
+    public function fetchAllPosts($current_page=1, $paging_info=20, $filter=null, $order=null);
 
     //fetch all posts of a user, filter and order can be applied
-    public function fetchUserPosts($user, $filter=null, $order=null, $paging_info=2);
+    public function fetchUserPosts($user, $current_page=1, $paging_info=20, $filter=null, $order=null);
 
     //fecth detail information of a post
     public function fetchOnePost($id);
@@ -34,4 +34,6 @@ interface BusinessService
     public function collectPost($post_id);
 
     public function fetchCollectedPosts();
+
+    public function thumbPost($post_id);
 }

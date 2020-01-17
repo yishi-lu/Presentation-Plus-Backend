@@ -104,9 +104,9 @@ class PostsController extends Controller
         }
     }
 
-    public function fetchAllPosts(){
+    public function fetchAllPosts(Request $request){
 
-        $posts = $this->service->fetchAllPosts();
+        $posts = $this->service->fetchAllPosts($request->get('page'));
 
         if($posts){
             Log::debug('Fetch all posts successfully');
@@ -120,11 +120,11 @@ class PostsController extends Controller
         }
     }
 
-    public function fetchUserPosts($id){
+    public function fetchUserPosts($id, Request $request){
 
         $user = User::find($id);
 
-        $posts = $this->service->fetchUserPosts($user);
+        $posts = $this->service->fetchUserPosts($user, $request->get('page'));
 
         if($posts){
             Log::debug('User with id: '.$user->id.', name: '.$user->name.' posts are all fetched');
@@ -171,6 +171,24 @@ class PostsController extends Controller
             return response()->json(['message'=>['Failed to fetch post']], 401);
         }
 
+    }
+
+    public function thumbPost(Request $request){
+
+        $user = Auth::user();
+
+        $posts = $this->service->thumbPost($request->get('post_id'));
+
+        if($posts){
+            Log::debug('User with id: '.$user->id.', name: '.$user->name.' thumb a post');
+
+            return response()->json(['success'=>$posts], $this->successStatus); 
+        }
+        else {
+            Log::debug('User with id: '.$user->id.', name: '.$user->name.' failed to thumb a post ');
+
+            return response()->json(['message'=>['Failed to fetch post']], 401);
+        }
     }
 
     protected function postValidation(Request $request){

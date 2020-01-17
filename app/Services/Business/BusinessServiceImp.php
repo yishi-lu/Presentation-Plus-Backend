@@ -8,6 +8,7 @@ use App\Post;
 use App\Post_image; 
 use App\Profile; 
 
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth; 
 use Illuminate\Support\Facades\Hash;
@@ -26,7 +27,9 @@ class BusinessServiceImp implements BusinessService
      * @param $filter, $order, $paging_info
      * @return Post::array | null
      */
-    public function fetchAllPosts($filter=null, $order=null, $paging_info=20){
+    public function fetchAllPosts($current_page=1, $paging_info=20, $filter=null, $order=null){
+
+        // dd($current_page);
 
         $auth_user = Auth::guard('api')->user();
 
@@ -40,7 +43,7 @@ class BusinessServiceImp implements BusinessService
                     ->where('users.status', Constant::STATUS_ACTIVATED)
                     ->where('posts.status', Constant::STATUS_ACTIVATED)
                     ->orderBy('posts.created_at','desc')
-                    ->paginate($paging_info);
+                    ->get();
 
         }
         else {
@@ -72,11 +75,35 @@ class BusinessServiceImp implements BusinessService
                     ->orderBy('posts.id','desc')
                     ->groupBy('posts.id')
                     ->distinct()
-                    ->paginate($paging_info);
+                    ->get();
 
         }   
 
-        
+        foreach($query as $item){
+
+            $count_thumbed = DB::table("post_thumb_user")
+                        ->select("id")
+                        ->where("post_id", "=", $item->id)
+                        ->count();
+
+
+            $item->count_thumbed = $count_thumbed;
+        }
+
+
+        //pagination on collection
+        $page = $current_page;
+        $perPage = $paging_info;
+        $pagination = new LengthAwarePaginator(
+            $query->forPage($page, $perPage), 
+            $query->count(), 
+            $perPage, 
+            $page,
+            [
+                'path' => LengthAwarePaginator::resolveCurrentPath(),
+                'pageName' => "page",
+            ]
+        );
 
 
 
@@ -116,7 +143,7 @@ class BusinessServiceImp implements BusinessService
 
         // $posts = $query->paginate($paging_info, 'posts.id');
        
-        return $query;
+        return $pagination;
     }
 
     /**
@@ -125,7 +152,7 @@ class BusinessServiceImp implements BusinessService
      * @param $user $filter, $order, $paging_info
      * @return Post::array | null
      */
-    public function fetchUserPosts($user, $filter=null, $order=null, $paging_info=20){
+    public function fetchUserPosts($user, $current_page=1, $paging_info=20, $filter=null, $order=null){
 
         $auth_user = Auth::guard('api')->user();
 
@@ -135,17 +162,41 @@ class BusinessServiceImp implements BusinessService
                     ->where('visibility', Constant::STATUS_PUBLIC)
                     ->where('status', Constant::STATUS_ACTIVATED)
                     ->orderBy('created_at','desc')
-                    ->paginate($paging_info);
+                    ->get();
         }
         else{
             $posts = Post::select('id', 'title', 'image_url', 'type', 'liked', 'viewed')
             ->where("user_id", $user->id)
             ->where('status', Constant::STATUS_ACTIVATED)
             ->orderBy('created_at','desc')
-            ->paginate($paging_info);
+            ->get();
         }
 
-        return $posts;
+        foreach($posts as $item){
+
+            $count_thumbed = DB::table("post_thumb_user")
+                        ->select("id")
+                        ->where("post_id", "=", $item->id)
+                        ->count();
+
+
+            $item->count_thumbed = $count_thumbed;
+        }
+
+        $page = $current_page;
+        $perPage = $paging_info;
+        $pagination = new LengthAwarePaginator(
+            $posts->forPage($page, $perPage), 
+            $posts->count(), 
+            $perPage, 
+            $page,
+            [
+                'path' => LengthAwarePaginator::resolveCurrentPath(),
+                'pageName' => "page",
+            ]
+        );
+
+        return $pagination;
     }
 
     /**
@@ -154,9 +205,9 @@ class BusinessServiceImp implements BusinessService
      * @param $id
      * @return Post | null
      */
-    public function fetchOnePost($id){
+    public function fetchOnePost($post_id){
 
-        $post = Post::find($id);
+        $post = Post::find($post_id);
 
         $post_content_image = Post_image::where('post_id', '=', $post->id)->get();
 
@@ -177,15 +228,23 @@ class BusinessServiceImp implements BusinessService
             $is_collected  = DB::table('post_user')
                             ->select('user_id', 'post_id')
                             ->where('user_id', '=', $auth_user->id)
-                            ->where('post_id', '=', $id)
+                            ->where('post_id', '=', $post->id)
                             ->count();
+
+            $is_thumbed = DB::table('post_thumb_user')
+                            ->select('user_id', 'post_id')
+                            ->where('user_id', '=', $auth_user->id)
+                            ->where('post_id', '=', $post->id)
+                            ->count(); 
         }
         else {
             $is_follow = 0;
             $is_collected = 0;
+            $is_thumbed = 0;
         }
 
         $post->is_collected = $is_collected;
+        $post->is_thumbed = $is_thumbed;
 
         if($auth_user && ($is_follow > 0 || $auth_user->id == $post->user_id || ($auth_user->role == CONSTANT::ROLE_SUPER_ADMIN || $auth_user->role == CONSTANT::ROLE_ADMIN))){
             return $post;
@@ -392,6 +451,7 @@ class BusinessServiceImp implements BusinessService
                 ->where('post_user.user_id', '=', $auth_user->id)
                 ->where('posts.status', '=', Constant::STATUS_ACTIVATED)
                 ->where('posts.visibility', '!=', Constant::STATUS_PRIVATE)
+                ->orderBy('posts.created_at','desc')
                 ->get();
 
         $followed = DB::table('profile_user')
@@ -414,11 +474,41 @@ class BusinessServiceImp implements BusinessService
                 $posts->forget($post);
 
             }
-
-
         }
 
         return $posts;
+
+    }
+
+    /**
+     * thumb/unthumb a post by auth user
+     *
+     * @param null
+     * @return boolean|null
+     */
+    public function thumbPost($post_id){
+
+        $auth_user = Auth::guard('api')->user();
+
+        $post = Post::findOrFail($post_id);
+
+        $query = DB::table('post_thumb_user')
+                ->select('post_id', 'user_id')
+                ->where('user_id', $auth_user->id)
+                ->where('post_id', $post->id)
+                ->count();
+
+        if($query <= 0){
+            return DB::table('post_thumb_user')->insert(
+                ['user_id' => $auth_user->id, 'post_id' => $post->id]
+            );
+        }
+        else{
+            return DB::table('post_thumb_user')
+                    ->where('user_id', $auth_user->id)
+                    ->where('post_id', $post->id)
+                    ->delete();
+        }
 
     }
 }
