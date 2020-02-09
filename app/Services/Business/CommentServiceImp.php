@@ -57,44 +57,7 @@ class CommentServiceImp implements CommentService{
                     $item->is_liked = $is_liked;
                 }
 
-                $sub_comments = DB::table("comments")
-                               ->select('comments.id', 'comments.comment_id', 'comments.title', 'comments.content', 'comments.user_id', 'comments.post_id', 'comments.status', 'users.name', 'profiles.portrait', 'comments.created_at')
-                               ->join('users','users.id','=','comments.user_id')
-                               ->join('profiles','profiles.user_id','=','users.id')
-                               ->where('comments.comment_id', '=', $id)
-                               ->where('comments.status', '=', Constant::STATUS_ACTIVATED)
-                               ->where('users.status', '=', Constant::STATUS_ACTIVATED)
-                               ->orderBy('comments.created_at','desc')
-                               ->paginate(5);
-                
-                if($sub_comments != null) {
-
-                    foreach($sub_comments as $sub){
-                        $sub_id = $sub->id;
-
-                        $count_liked = DB::table("comment_user")
-                                        ->select("id")
-                                        ->where("comment_id", "=", $sub_id)
-                                        ->count();
-
-                        $sub->liked = $count_liked;
-
-                        if($user){
-                            $is_liked = DB::table("comment_user")
-                                        ->select("id")
-                                        ->where("comment_id", "=", $sub_id)
-                                        ->where("user_id", "=", $user->id)
-                                        ->count();
-                            
-                            $sub->is_liked = $is_liked;
-                        }
-
-                    }
-
-                    $item->sub_comments = $sub_comments;
-
-                }
-
+                $item->sub_comments = $this->fetchSubcomments($id);
             }
 
             //pagination on collection
@@ -112,6 +75,65 @@ class CommentServiceImp implements CommentService{
             );
 
             return $pagination;
+
+        }
+
+        public function fetchSubcomments($comment_id, $current_page=1, $paging_info=5){
+
+            $user = Auth::guard('api')->user();
+
+            $query = DB::table("comments")
+                               ->select('comments.id', 'comments.comment_id', 'comments.title', 'comments.content', 'comments.user_id', 'comments.post_id', 'comments.status', 'users.name', 'profiles.portrait', 'comments.created_at')
+                               ->join('users','users.id','=','comments.user_id')
+                               ->join('profiles','profiles.user_id','=','users.id')
+                               ->where('comments.comment_id', '=', $comment_id)
+                               ->where('comments.status', '=', Constant::STATUS_ACTIVATED)
+                               ->where('users.status', '=', Constant::STATUS_ACTIVATED)
+                               ->orderBy('comments.created_at','desc')
+                               ->get();
+                
+            if($query != null) {
+
+                foreach($query as $sub){
+                    $sub_id = $sub->id;
+
+                    $count_liked = DB::table("comment_user")
+                                    ->select("id")
+                                    ->where("comment_id", "=", $sub_id)
+                                    ->count();
+
+                    $sub->liked = $count_liked;
+                    
+                    if($user){
+                        $is_liked = DB::table("comment_user")
+                                    ->select("id")
+                                    ->where("comment_id", "=", $sub_id)
+                                    ->where("user_id", "=", $user->id)
+                                    ->count();
+                        
+                        $sub->is_liked = $is_liked;
+                    }
+
+                }
+
+                //pagination on collection
+                // $page = $current_page;
+                // $perPage = $paging_info;
+                // $pagination = new LengthAwarePaginator(
+                //     $query->forPage($page, $perPage), 
+                //     $query->count(), 
+                //     $perPage, 
+                //     $page,
+                //     [
+                //         'path' => LengthAwarePaginator::resolveCurrentPath(),
+                //         'pageName' => "page",
+                //     ]
+                // );
+            }
+            
+
+            return $query;
+            
 
         }
 

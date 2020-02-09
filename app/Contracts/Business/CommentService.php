@@ -15,6 +15,9 @@ interface CommentService
     //fetch all comments of a post
     public function fetchPostComments($post_id, $current_page=1, $paging_info=20);
 
+    //fecth sub comments of a comment
+    public function fetchSubcomments($comment_id, $current_page=1, $paging_info=20);
+
     //fetch all comments of a user
     public function fetchUserComments($user_id, $paging_info=20);
 

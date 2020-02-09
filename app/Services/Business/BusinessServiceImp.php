@@ -34,7 +34,7 @@ class BusinessServiceImp implements BusinessService
         $auth_user = Auth::guard('api')->user();
 
         $query = null;
-        if(!$auth_user || $auth_user->profile->followedBy()->count() == 0){
+        // if(!$auth_user || $auth_user->profile->followedBy()->count() == 0){
 
             $query = DB::table("posts")
                     ->select('posts.id', 'posts.title', 'posts.image_url', 'posts.type', 'posts.liked', 'posts.viewed', 'posts.user_id', 'users.name', 'posts.created_at')
@@ -45,39 +45,39 @@ class BusinessServiceImp implements BusinessService
                     ->orderBy('posts.created_at','desc')
                     ->get();
 
-        }
-        else {
+        // }
+        // else {
             
-            $profile = $auth_user->profile;
+        //     $profile = $auth_user->profile;
 
-            $query = DB::table("posts")
-                    ->select('posts.id', 'posts.title', 'posts.image_url', 'posts.type', 'posts.liked', 'posts.viewed', 'posts.user_id', 'users.name', 'posts.created_at')
-                    ->join('users','users.id','=','posts.user_id')
-                    ->join('profile_user', 'profile_user.user_id', '=', 'posts.user_id')
-                    ->where(
-                        function ($query) use ($auth_user, $profile){
-                            $query->where('posts.visibility', Constant::STATUS_FOLLOWER)
-                                  ->where(function ($query) use ($auth_user, $profile){
-                                      $query->where('profile_user.profile_id', '=', $profile->id)
-                                            ->orwhere('posts.user_id', '=', $auth_user->id);
-                                  });
+        //     $query = DB::table("posts")
+        //             ->select('posts.id', 'posts.title', 'posts.image_url', 'posts.type', 'posts.liked', 'posts.viewed', 'posts.user_id', 'users.name', 'posts.created_at')
+        //             ->join('users','users.id','=','posts.user_id')
+        //             ->join('profile_user', 'profile_user.user_id', '=', 'posts.user_id')
+        //             ->where(
+        //                 function ($query) use ($auth_user, $profile){
+        //                     $query->where('posts.visibility', Constant::STATUS_FOLLOWER)
+        //                           ->where(function ($query) use ($auth_user, $profile){
+        //                               $query->where('profile_user.profile_id', '=', $profile->id)
+        //                                     ->orwhere('posts.user_id', '=', $auth_user->id);
+        //                           });
                                   
-                        }
-                    )
-                    ->orwhere(
-                        function ($query) use ($auth_user, $profile) {
-                            $query->where('posts.visibility', Constant::STATUS_PUBLIC);
+        //                 }
+        //             )
+        //             ->orwhere(
+        //                 function ($query) use ($auth_user, $profile) {
+        //                     $query->where('posts.visibility', Constant::STATUS_PUBLIC);
                                   
-                        }
-                    )
-                    ->where('users.status', Constant::STATUS_ACTIVATED)
-                    ->where('posts.status', Constant::STATUS_ACTIVATED)
-                    ->orderBy('posts.id','desc')
-                    ->groupBy('posts.id')
-                    ->distinct()
-                    ->get();
+        //                 }
+        //             )
+        //             ->where('users.status', Constant::STATUS_ACTIVATED)
+        //             ->where('posts.status', Constant::STATUS_ACTIVATED)
+        //             ->orderBy('posts.id','desc')
+        //             ->groupBy('posts.id')
+        //             ->distinct()
+        //             ->get();
 
-        }   
+        // }   
 
         foreach($query as $item){
 
