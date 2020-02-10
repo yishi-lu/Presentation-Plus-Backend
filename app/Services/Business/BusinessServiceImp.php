@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth; 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
 
 use App\Contracts\Constant;
 
@@ -20,6 +21,7 @@ class BusinessServiceImp implements BusinessService
 {
 
     public $successStatus = 200;
+    private $cacheExpirationTime = 10*60;
 
     /**
      * fetch all posts in database; paging_info, filter and order can be applied
@@ -31,10 +33,13 @@ class BusinessServiceImp implements BusinessService
 
         // dd($current_page);
 
-        $auth_user = Auth::guard('api')->user();
+        $posts = Redis::get('post:all');
 
-        $query = null;
-        // if(!$auth_user || $auth_user->profile->followedBy()->count() == 0){
+        if(empty($posts)){
+            $auth_user = Auth::guard('api')->user();
+
+            $query = null;
+            // if(!$auth_user || $auth_user->profile->followedBy()->count() == 0){
 
             $query = DB::table("posts")
                     ->select('posts.id', 'posts.title', 'posts.image_url', 'posts.type', 'posts.liked', 'posts.viewed', 'posts.user_id', 'users.name', 'posts.created_at')
@@ -45,105 +50,110 @@ class BusinessServiceImp implements BusinessService
                     ->orderBy('posts.created_at','desc')
                     ->get();
 
-        // }
-        // else {
-            
-        //     $profile = $auth_user->profile;
-
-        //     $query = DB::table("posts")
-        //             ->select('posts.id', 'posts.title', 'posts.image_url', 'posts.type', 'posts.liked', 'posts.viewed', 'posts.user_id', 'users.name', 'posts.created_at')
-        //             ->join('users','users.id','=','posts.user_id')
-        //             ->join('profile_user', 'profile_user.user_id', '=', 'posts.user_id')
-        //             ->where(
-        //                 function ($query) use ($auth_user, $profile){
-        //                     $query->where('posts.visibility', Constant::STATUS_FOLLOWER)
-        //                           ->where(function ($query) use ($auth_user, $profile){
-        //                               $query->where('profile_user.profile_id', '=', $profile->id)
-        //                                     ->orwhere('posts.user_id', '=', $auth_user->id);
-        //                           });
-                                  
-        //                 }
-        //             )
-        //             ->orwhere(
-        //                 function ($query) use ($auth_user, $profile) {
-        //                     $query->where('posts.visibility', Constant::STATUS_PUBLIC);
-                                  
-        //                 }
-        //             )
-        //             ->where('users.status', Constant::STATUS_ACTIVATED)
-        //             ->where('posts.status', Constant::STATUS_ACTIVATED)
-        //             ->orderBy('posts.id','desc')
-        //             ->groupBy('posts.id')
-        //             ->distinct()
-        //             ->get();
-
-        // }   
-
-        foreach($query as $item){
-
-            $count_thumbed = DB::table("post_thumb_user")
-                        ->select("id")
-                        ->where("post_id", "=", $item->id)
-                        ->count();
-
-
-            $item->count_thumbed = $count_thumbed;
-        }
-
-
-        //pagination on collection
-        $page = $current_page;
-        $perPage = $paging_info;
-        $pagination = new LengthAwarePaginator(
-            $query->forPage($page, $perPage), 
-            $query->count(), 
-            $perPage, 
-            $page,
-            [
-                'path' => LengthAwarePaginator::resolveCurrentPath(),
-                'pageName' => "page",
-            ]
-        );
-
-
-
-        // if($auth_user){
-        //     $profile = $auth_user->profile;
-        //     $query->join('profile_user', 'profile_user.user_id', '=', 'posts.user_id');
-
-        //     // $query->join('profile_user', function($join) use($profile) {
-        //     //     $join->on('profile_user.user_id', '=', 'posts.user_id')
-        //     //          ->where('profile_user.profile_id', '=', $profile->id);
-        //     // });
-
-        //     $query->where(
-        //                 function ($query) use ($auth_user, $profile) {
-        //                     $query->where('posts.visibility', Constant::STATUS_FOLLOWER)
-        //                           ->where('profile_user.profile_id', '=', $profile->id);
-                                  
-        //                 }
-        //             )
-        //             ->orwhere(
-        //                 function ($query) use ($auth_user, $profile) {
-        //                     $query->where('posts.visibility', Constant::STATUS_PUBLIC)
-        //                           ->where('profile_user.profile_id', '=', $profile->id);
-                                  
-        //                 }
-        //             );
-        // }
-        // else {
-        //     $query->where('posts.visibility', Constant::STATUS_PUBLIC);
-        // } 
-
-        // $query->where('users.status', Constant::STATUS_ACTIVATED)
-        //       ->where('posts.status', Constant::STATUS_ACTIVATED)
-        //       ->orderBy('posts.created_at','desc');
+            // }
+            // else {
                 
+            //     $profile = $auth_user->profile;
+
+            //     $query = DB::table("posts")
+            //             ->select('posts.id', 'posts.title', 'posts.image_url', 'posts.type', 'posts.liked', 'posts.viewed', 'posts.user_id', 'users.name', 'posts.created_at')
+            //             ->join('users','users.id','=','posts.user_id')
+            //             ->join('profile_user', 'profile_user.user_id', '=', 'posts.user_id')
+            //             ->where(
+            //                 function ($query) use ($auth_user, $profile){
+            //                     $query->where('posts.visibility', Constant::STATUS_FOLLOWER)
+            //                           ->where(function ($query) use ($auth_user, $profile){
+            //                               $query->where('profile_user.profile_id', '=', $profile->id)
+            //                                     ->orwhere('posts.user_id', '=', $auth_user->id);
+            //                           });
+                                    
+            //                 }
+            //             )
+            //             ->orwhere(
+            //                 function ($query) use ($auth_user, $profile) {
+            //                     $query->where('posts.visibility', Constant::STATUS_PUBLIC);
+                                    
+            //                 }
+            //             )
+            //             ->where('users.status', Constant::STATUS_ACTIVATED)
+            //             ->where('posts.status', Constant::STATUS_ACTIVATED)
+            //             ->orderBy('posts.id','desc')
+            //             ->groupBy('posts.id')
+            //             ->distinct()
+            //             ->get();
+
+            // }   
+
+            foreach($query as $item){
+
+                $count_thumbed = DB::table("post_thumb_user")
+                            ->select("id")
+                            ->where("post_id", "=", $item->id)
+                            ->count();
 
 
-        // $posts = $query->paginate($paging_info, 'posts.id');
+                $item->count_thumbed = $count_thumbed;
+            }
+
+
+            //pagination on collection
+            $page = $current_page;
+            $perPage = $paging_info;
+            $pagination = new LengthAwarePaginator(
+                $query->forPage($page, $perPage), 
+                $query->count(), 
+                $perPage, 
+                $page,
+                [
+                    'path' => LengthAwarePaginator::resolveCurrentPath(),
+                    'pageName' => "page",
+                ]
+            );
+
+            Redis::set('post:all', json_encode($pagination));
+            Redis::expire('post:all:', $this->cacheExpirationTime);
+
+            return $pagination;
+
+            // if($auth_user){
+            //     $profile = $auth_user->profile;
+            //     $query->join('profile_user', 'profile_user.user_id', '=', 'posts.user_id');
+
+            //     // $query->join('profile_user', function($join) use($profile) {
+            //     //     $join->on('profile_user.user_id', '=', 'posts.user_id')
+            //     //          ->where('profile_user.profile_id', '=', $profile->id);
+            //     // });
+
+            //     $query->where(
+            //                 function ($query) use ($auth_user, $profile) {
+            //                     $query->where('posts.visibility', Constant::STATUS_FOLLOWER)
+            //                           ->where('profile_user.profile_id', '=', $profile->id);
+                                    
+            //                 }
+            //             )
+            //             ->orwhere(
+            //                 function ($query) use ($auth_user, $profile) {
+            //                     $query->where('posts.visibility', Constant::STATUS_PUBLIC)
+            //                           ->where('profile_user.profile_id', '=', $profile->id);
+                                    
+            //                 }
+            //             );
+            // }
+            // else {
+            //     $query->where('posts.visibility', Constant::STATUS_PUBLIC);
+            // } 
+
+            // $query->where('users.status', Constant::STATUS_ACTIVATED)
+            //       ->where('posts.status', Constant::STATUS_ACTIVATED)
+            //       ->orderBy('posts.created_at','desc');
+                    
+
+
+            // $posts = $query->paginate($paging_info, 'posts.id');
+        }
+        
        
-        return $pagination;
+        return json_decode($posts);
     }
 
     /**
@@ -154,49 +164,61 @@ class BusinessServiceImp implements BusinessService
      */
     public function fetchUserPosts($user, $current_page=1, $paging_info=20, $filter=null, $order=null){
 
-        $auth_user = Auth::guard('api')->user();
+        $user_posts = Redis::get('post:user:'.$user->id);
 
-        if(!$auth_user || ($auth_user->id != $user->id && ($auth_user->role != CONSTANT::ROLE_SUPER_ADMIN || $auth_user->role != CONSTANT::ROLE_ADMIN))){
-            $posts = Post::select('id', 'title', 'image_url', 'type', 'liked', 'viewed')
-                    ->where("user_id", $user->id)
-                    ->where('visibility', Constant::STATUS_PUBLIC)
-                    ->where('status', Constant::STATUS_ACTIVATED)
-                    ->orderBy('created_at','desc')
-                    ->get();
+        if(empty($user_posts)){
+
+            $auth_user = Auth::guard('api')->user();
+
+            if(!$auth_user || ($auth_user->id != $user->id && ($auth_user->role != CONSTANT::ROLE_SUPER_ADMIN || $auth_user->role != CONSTANT::ROLE_ADMIN))){
+                $posts = Post::select('id', 'title', 'image_url', 'type', 'liked', 'viewed')
+                        ->where("user_id", $user->id)
+                        ->where('visibility', Constant::STATUS_PUBLIC)
+                        ->where('status', Constant::STATUS_ACTIVATED)
+                        ->orderBy('created_at','desc')
+                        ->get();
+            }
+            else{
+                $posts = Post::select('id', 'title', 'image_url', 'type', 'liked', 'viewed')
+                ->where("user_id", $user->id)
+                ->where('status', Constant::STATUS_ACTIVATED)
+                ->orderBy('created_at','desc')
+                ->get();
+            }
+
+            foreach($posts as $item){
+
+                $count_thumbed = DB::table("post_thumb_user")
+                            ->select("id")
+                            ->where("post_id", "=", $item->id)
+                            ->count();
+
+
+                $item->count_thumbed = $count_thumbed;
+            }
+
+            $page = $current_page;
+            $perPage = $paging_info;
+            $pagination = new LengthAwarePaginator(
+                $posts->forPage($page, $perPage), 
+                $posts->count(), 
+                $perPage, 
+                $page,
+                [
+                    'path' => LengthAwarePaginator::resolveCurrentPath(),
+                    'pageName' => "page",
+                ]
+            );
+
+            Redis::set('post:user'.$user->id, json_encode($pagination));
+            Redis::expire('post:user:'.$user->id, $this->cacheExpirationTime);
+
+            return $pagination;
+
         }
-        else{
-            $posts = Post::select('id', 'title', 'image_url', 'type', 'liked', 'viewed')
-            ->where("user_id", $user->id)
-            ->where('status', Constant::STATUS_ACTIVATED)
-            ->orderBy('created_at','desc')
-            ->get();
-        }
+        
 
-        foreach($posts as $item){
-
-            $count_thumbed = DB::table("post_thumb_user")
-                        ->select("id")
-                        ->where("post_id", "=", $item->id)
-                        ->count();
-
-
-            $item->count_thumbed = $count_thumbed;
-        }
-
-        $page = $current_page;
-        $perPage = $paging_info;
-        $pagination = new LengthAwarePaginator(
-            $posts->forPage($page, $perPage), 
-            $posts->count(), 
-            $perPage, 
-            $page,
-            [
-                'path' => LengthAwarePaginator::resolveCurrentPath(),
-                'pageName' => "page",
-            ]
-        );
-
-        return $pagination;
+        return json_decode($user_posts);
     }
 
     /**
@@ -207,51 +229,64 @@ class BusinessServiceImp implements BusinessService
      */
     public function fetchOnePost($post_id){
 
-        $post = Post::find($post_id);
+        $post = Redis::get('post:detail:'.$post_id);
 
-        $post_content_image = Post_image::where('post_id', '=', $post->id)->get();
+        if(empty($post)){
+            $post = Post::find($post_id);
 
-        $post_author = User::find($post->user_id);
+            $post_content_image = Post_image::where('post_id', '=', $post->id)->get();
 
-        $post->author_name = $post_author->name; 
-        $post->post_content_image = $post_content_image;
+            $post_author = User::find($post->user_id);
 
-        $auth_user = Auth::guard('api')->user();
+            $post->author_name = $post_author->name; 
+            $post->post_content_image = $post_content_image;
 
-        if($auth_user){
-            $is_follow = DB::table('profile_user')
-                        ->select('user_id', 'prifle_id')
-                        ->where('user_id', '=', $post->user_id)
-                        ->where('profile_id', '=', $auth_user->profile->id)
-                        ->count();
-            
-            $is_collected  = DB::table('post_user')
-                            ->select('user_id', 'post_id')
-                            ->where('user_id', '=', $auth_user->id)
-                            ->where('post_id', '=', $post->id)
+            $auth_user = Auth::guard('api')->user();
+
+            if($auth_user){
+                $is_follow = DB::table('profile_user')
+                            ->select('user_id', 'prifle_id')
+                            ->where('user_id', '=', $post->user_id)
+                            ->where('profile_id', '=', $auth_user->profile->id)
                             ->count();
+                
+                $is_collected  = DB::table('post_user')
+                                ->select('user_id', 'post_id')
+                                ->where('user_id', '=', $auth_user->id)
+                                ->where('post_id', '=', $post->id)
+                                ->count();
 
-            $is_thumbed = DB::table('post_thumb_user')
-                            ->select('user_id', 'post_id')
-                            ->where('user_id', '=', $auth_user->id)
-                            ->where('post_id', '=', $post->id)
-                            ->count(); 
-        }
-        else {
-            $is_follow = 0;
-            $is_collected = 0;
-            $is_thumbed = 0;
+                $is_thumbed = DB::table('post_thumb_user')
+                                ->select('user_id', 'post_id')
+                                ->where('user_id', '=', $auth_user->id)
+                                ->where('post_id', '=', $post->id)
+                                ->count(); 
+            }
+            else {
+                $is_follow = 0;
+                $is_collected = 0;
+                $is_thumbed = 0;
+            }
+
+            $post->is_collected = $is_collected;
+            $post->is_thumbed = $is_thumbed;
+
+            if($auth_user && ($is_follow > 0 || $auth_user->id == $post->user_id || ($auth_user->role == CONSTANT::ROLE_SUPER_ADMIN || $auth_user->role == CONSTANT::ROLE_ADMIN))){
+                Redis::set('post:detail:'.$post_id, json_encode($post));
+                Redis::expire('post:detail:'.$post_id, $this->cacheExpirationTime);
+                return $post;
+            }
+            else{
+                if($post->status == CONSTANT::STATUS_ACTIVATED && $post->visibility == CONSTANT::STATUS_PUBLIC){
+                    Redis::set('post:detail:'.$post_id, json_encode($post));
+                    Redis::expire('post:detail:'.$post_id, $this->cacheExpirationTime);
+                    return $post;
+                }
+                else return null;
+            }
         }
 
-        $post->is_collected = $is_collected;
-        $post->is_thumbed = $is_thumbed;
-
-        if($auth_user && ($is_follow > 0 || $auth_user->id == $post->user_id || ($auth_user->role == CONSTANT::ROLE_SUPER_ADMIN || $auth_user->role == CONSTANT::ROLE_ADMIN))){
-            return $post;
-        }
-        else{
-            return $post->status == CONSTANT::STATUS_ACTIVATED && $post->visibility == CONSTANT::STATUS_PUBLIC ? $post : null;
-        }
+        return json_decode($post);
 
     }
 

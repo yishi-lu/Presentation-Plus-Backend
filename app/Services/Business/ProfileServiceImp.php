@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Redis;
+use Carbon\Carbon;
 
 use App\Contracts\Constant;
 use App\User; 
@@ -17,6 +19,8 @@ use App\Profile;
 class ProfileServiceImp implements ProfileService
 {
 
+    private $cacheExpirationTime = 10*60;
+
     /**
      * fetch profile by given profile id
      *
@@ -25,37 +29,48 @@ class ProfileServiceImp implements ProfileService
      */
     public function show_user_profile($profile_id){
 
-        $profile = Profile::findOrFail($profile_id);
+        $user_profile = Redis::get('user:profile:'.$profile_id);
 
-        $target_user = DB::table('profiles')
-                    ->select('profiles.id as profile_id', 'profiles.user_id as id', 'profiles.signature', 'profiles.portrait', 'profiles.visibility', 'users.name', 'users.status')
-                    ->join('users','users.id','=','profiles.user_id')
-                    ->where('profiles.user_id', $profile_id)
-                    ->first();
+        if(empty($user_profile)){
+            $profile = Profile::findOrFail($profile_id);
 
-        $auth_user = Auth::guard('api')->user();
+            $target_user = DB::table('profiles')
+                        ->select('profiles.id as profile_id', 'profiles.user_id as id', 'profiles.signature', 'profiles.portrait', 'profiles.visibility', 'users.name', 'users.status')
+                        ->join('users','users.id','=','profiles.user_id')
+                        ->where('profiles.user_id', $profile_id)
+                        ->first();
 
-        $follows = $auth_user ? $auth_user->followed->contains($profile_id) : false;
-        $followerCount = $profile->followedBy->count();
-        $followingCount = $profile->user->followed->count();
-        $postCount = $profile->user->post->count();
+            $auth_user = Auth::guard('api')->user();
 
-        $target_user->follow = $follows;
-        $target_user->followerCount = $followerCount;
-        $target_user->followingCount = $followingCount;
-        $target_user->postCount = $postCount;
+            $follows = $auth_user ? $auth_user->followed->contains($profile_id) : false;
+            $followerCount = $profile->followedBy->count();
+            $followingCount = $profile->user->followed->count();
+            $postCount = $profile->user->post->count();
 
-        $following = $auth_user ? User::find($target_user->id)->followed->contains($auth_user->profile->id) : false;
-        // dd($profile->followedBy->contains($auth_user->id));
+            $target_user->follow = $follows;
+            $target_user->followerCount = $followerCount;
+            $target_user->followingCount = $followingCount;
+            $target_user->postCount = $postCount;
 
-        if($auth_user && $target_user->id == $auth_user->id && $target_user->status != Constant::STATUS_DEACTIVATED) return $target_user;
+            $following = $auth_user ? User::find($target_user->id)->followed->contains($auth_user->profile->id) : false;
+            // dd($profile->followedBy->contains($auth_user->id));
 
-        if($profile->visibility == Constant::STATUS_PRIVATE || $target_user->status == Constant::STATUS_DEACTIVATED) return null;
-        else if($profile->visibility == Constant::STATUS_FOLLOWER && !$following) return null;
-        else {
-            return $target_user;
+            if($auth_user && $target_user->id == $auth_user->id && $target_user->status != Constant::STATUS_DEACTIVATED) {
+                Redis::set('user:profile:'.$profile_id, json_encode($target_user));
+                Redis::expire('user:profile:'.$profile_id, $this->cacheExpirationTime);
+                return $target_user;
+            }
+
+            if($profile->visibility == Constant::STATUS_PRIVATE || $target_user->status == Constant::STATUS_DEACTIVATED) return null;
+            else if($profile->visibility == Constant::STATUS_FOLLOWER && !$following) return null;
+            else {
+                Redis::set('user:profile:'.$profile_id, json_encode($target_user));
+                Redis::expire('user:profile:'.$profile_id, $this->cacheExpirationTime);
+                return $target_user;
+            }
         }
 
+        return json_decode($user_profile);
     }
 
     /**
