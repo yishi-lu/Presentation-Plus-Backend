@@ -33,7 +33,7 @@ class PostsController extends Controller
 
         $post = $this->service->createOnePost($request);
 
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();
 
         if($post){
             Log::debug('User with id: '.$user->id.', name: '.$user->name.' created post successfully');
@@ -49,7 +49,7 @@ class PostsController extends Controller
 
     public function edit(Request $request){
 
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();
 
         $validator = $this->postValidation($request);
 
@@ -71,7 +71,7 @@ class PostsController extends Controller
 
     public function delete(Request $request){
 
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();
 
         $result = $this->service->deletePost($request);
 
@@ -140,7 +140,7 @@ class PostsController extends Controller
 
     public function collectPost(Request $request){
 
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();
 
         $posts = $this->service->collectPost($request->get('post_id'));
 
@@ -175,7 +175,7 @@ class PostsController extends Controller
 
     public function thumbPost(Request $request){
 
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();
 
         $posts = $this->service->thumbPost($request->get('post_id'));
 

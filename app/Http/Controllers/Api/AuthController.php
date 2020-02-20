@@ -41,10 +41,10 @@ class AuthController extends Controller
 
         if($user == null) return response()->json(['message'=>'Failed to register with provided information.']);
 
-        Auth::login($user);
-        $success['token'] =  $user->createToken(config('app.name'))->accessToken;
+        // Auth::login($user); //login user, can access user by Auth::user();
+        $success['token'] =  $user->createToken(config('app.name'))->accessToken; //login user, can access user by Auth::guard('api')->user();
         $cookie = $this->make_token_cookie($success['token']);
-        return response()->json(['user'=>Auth::user()], $this->successStatus)->withCookie($cookie); 
+        return response()->json(['user'=>Auth::guard('api')->user()], $this->successStatus)->withCookie($cookie); 
     }
     
     /**
@@ -66,10 +66,11 @@ class AuthController extends Controller
         if($user) {
             Log::debug('User with id: '.$user->id.', name: '.$user->name.' is logged in');
 
-            Auth::login($user);
+            // Auth::login($user);
             $success['token'] =  $user->createToken(config('app.name'))->accessToken;
             $cookie = $this->make_token_cookie($success['token']);
-            return response()->json(['user'=>Auth::user()], $this->successStatus)->withCookie($cookie);
+            // dd(Auth::guard('api')->user());
+            return response()->json(['user'=>$user], $this->successStatus)->withCookie($cookie);
         }
         else {
             Log::debug('email: '.$email.' attempts to log in failed');
@@ -80,7 +81,7 @@ class AuthController extends Controller
 
 
     public function profile(Request $request){
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();
         return response()->json(['success' => $user], $this->successStatus);
     }
 

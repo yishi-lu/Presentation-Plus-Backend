@@ -66,3 +66,12 @@ Route::group(['prefix' => 'comment', 'name' => 'api.comment.'], function () {
     Route::get("/postComments/{id}", ["name" => "postComments", "uses" => "Api\\CommentsController@fetchPostComments"]);
     Route::get("/userComments/{id}", ["name" => "userComments", "uses" => "Api\\CommentsController@fetchUserComments"]);
 });
+
+//Message Router
+Route::group(['middleware' => 'auth:api', 'prefix' => 'message', 'name' => 'api.message.'], function () {
+    Route::post("/fetchContact", ["name" => "fetchContact", "uses" => "Api\\MessagesController@fetchUserContact"]);
+    Route::post("/addContact", ["name" => "addContact", "uses" => "Api\\MessagesController@addUserContact"]);
+    Route::post("/removeContact", ["name" => "removeContact", "uses" => "Api\\MessagesController@removeUserContact"]);
+    Route::post("/fetchMessage", ["name" => "fetchMessage", "uses" => "Api\\MessagesController@fetchUserContactMessage"]);
+    Route::post("/postMessage", ["name" => "postMessage", "uses" => "Api\\MessagesController@addUserContactMessage"]);
+});

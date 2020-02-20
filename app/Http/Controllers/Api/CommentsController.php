@@ -23,7 +23,7 @@ class CommentsController extends Controller
     
     public function create(Request $requst){
 
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();;
 
         $this->commentValidator($requst);
         
@@ -44,7 +44,7 @@ class CommentsController extends Controller
 
     public function edit(Request $request){
 
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();;
 
         $this->commentValidator($request);
 

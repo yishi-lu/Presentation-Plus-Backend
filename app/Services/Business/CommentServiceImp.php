@@ -155,7 +155,7 @@ class CommentServiceImp implements CommentService{
         //create a comment
         public function createComment($request){
 
-            $user = Auth::user();
+            $user = Auth::guard('api')->user();
             $post = Post::find($request->get("post_id"));
             $target_comment = Comment::find($request->get("comment_id"));
 
@@ -184,7 +184,7 @@ class CommentServiceImp implements CommentService{
         //edit a given comment
         public function editComment($request){
 
-            $user = Auth::user();
+            $user = Auth::guard('api')->user();
 
             $comment = Comment::find($request->get("id"));
 

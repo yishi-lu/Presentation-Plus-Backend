@@ -29,7 +29,7 @@ class ProfileServiceImp implements ProfileService
      */
     public function show_user_profile($profile_id){
 
-        $user_profile = Redis::get('user:profile:'.$profile_id);
+        // $user_profile = Redis::get('user:profile:'.$profile_id);
 
         if(empty($user_profile)){
             $profile = Profile::findOrFail($profile_id);
@@ -56,16 +56,16 @@ class ProfileServiceImp implements ProfileService
             // dd($profile->followedBy->contains($auth_user->id));
 
             if($auth_user && $target_user->id == $auth_user->id && $target_user->status != Constant::STATUS_DEACTIVATED) {
-                Redis::set('user:profile:'.$profile_id, json_encode($target_user));
-                Redis::expire('user:profile:'.$profile_id, $this->cacheExpirationTime);
+                // Redis::set('user:profile:'.$profile_id, json_encode($target_user));
+                // Redis::expire('user:profile:'.$profile_id, $this->cacheExpirationTime);
                 return $target_user;
             }
 
             if($profile->visibility == Constant::STATUS_PRIVATE || $target_user->status == Constant::STATUS_DEACTIVATED) return null;
             else if($profile->visibility == Constant::STATUS_FOLLOWER && !$following) return null;
             else {
-                Redis::set('user:profile:'.$profile_id, json_encode($target_user));
-                Redis::expire('user:profile:'.$profile_id, $this->cacheExpirationTime);
+                // Redis::set('user:profile:'.$profile_id, json_encode($target_user));
+                // Redis::expire('user:profile:'.$profile_id, $this->cacheExpirationTime);
                 return $target_user;
             }
         }
@@ -93,7 +93,7 @@ class ProfileServiceImp implements ProfileService
      */
     public function follow_unfollow($profile_id){
 
-        // $auth_user = Auth::user();
+        // $auth_user = Auth::guard('api')->user();
         $profile = Profile::findOrFail($profile_id);
 
         // $profile_user = DB::table('profile_user')

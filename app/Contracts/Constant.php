@@ -56,4 +56,19 @@ interface Constant
     const POST_TYPE_VIDEO = 3;
     const POST_TYPE_COMIC = 4;
 
+    //message type
+    const MESG_TYPE_USER = 1;
+    const MESG_TYPE_SYSTEM = 2;
+    
+    //message status
+    const MESG_STATUS_UNREAD = 0;
+    const MESG_STATUS_READ = 1;
+    const MESG_STATUS_DELETED = 2;
+    const MESG_STATUS_FLAG = 99;
+
+    //message content type
+    const MESG_CONTENT_TEXT = 1;
+    const MESG_CONTENT_IMAGE = 2;
+    const MESG_CONTENT_FILE = 3;
+
 }

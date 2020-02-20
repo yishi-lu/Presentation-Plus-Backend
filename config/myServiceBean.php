@@ -25,4 +25,10 @@ return [
         "shared" => false,
         "singleton" => true,
     ],
+
+    "App\Contracts\Business\MessageService" => [
+        "class" => "App\Services\Business\MessageServiceImp",
+        "shared" => false,
+        "singleton" => true,
+    ],
 ];

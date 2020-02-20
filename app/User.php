@@ -78,4 +78,9 @@ class User extends Authenticatable
     public function collected(){
         return $this->belongsToMany(Post::class)->withTimestamps();
     }
+
+    public function contact(Type $var = null)
+    {
+        return $this->hasMany(UserContact::class)->orderBy('updated_at', 'DESC');
+    }
 }

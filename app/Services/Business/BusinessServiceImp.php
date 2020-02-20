@@ -33,7 +33,7 @@ class BusinessServiceImp implements BusinessService
 
         // dd($current_page);
 
-        $posts = Redis::get('post:all');
+        // $posts = Redis::get('post:all');
 
         if(empty($posts)){
             $auth_user = Auth::guard('api')->user();
@@ -110,8 +110,8 @@ class BusinessServiceImp implements BusinessService
                 ]
             );
 
-            Redis::set('post:all', json_encode($pagination));
-            Redis::expire('post:all:', $this->cacheExpirationTime);
+            // Redis::set('post:all', json_encode($pagination));
+            // Redis::expire('post:all:', $this->cacheExpirationTime);
 
             return $pagination;
 
@@ -164,7 +164,7 @@ class BusinessServiceImp implements BusinessService
      */
     public function fetchUserPosts($user, $current_page=1, $paging_info=20, $filter=null, $order=null){
 
-        $user_posts = Redis::get('post:user:'.$user->id);
+        // $user_posts = Redis::get('post:user:'.$user->id);
 
         if(empty($user_posts)){
 
@@ -210,8 +210,8 @@ class BusinessServiceImp implements BusinessService
                 ]
             );
 
-            Redis::set('post:user'.$user->id, json_encode($pagination));
-            Redis::expire('post:user:'.$user->id, $this->cacheExpirationTime);
+            // Redis::set('post:user'.$user->id, json_encode($pagination));
+            // Redis::expire('post:user:'.$user->id, $this->cacheExpirationTime);
 
             return $pagination;
 
@@ -229,7 +229,7 @@ class BusinessServiceImp implements BusinessService
      */
     public function fetchOnePost($post_id){
 
-        $post = Redis::get('post:detail:'.$post_id);
+        // $post = Redis::get('post:detail:'.$post_id);
 
         if(empty($post)){
             $post = Post::find($post_id);
@@ -272,14 +272,14 @@ class BusinessServiceImp implements BusinessService
             $post->is_thumbed = $is_thumbed;
 
             if($auth_user && ($is_follow > 0 || $auth_user->id == $post->user_id || ($auth_user->role == CONSTANT::ROLE_SUPER_ADMIN || $auth_user->role == CONSTANT::ROLE_ADMIN))){
-                Redis::set('post:detail:'.$post_id, json_encode($post));
-                Redis::expire('post:detail:'.$post_id, $this->cacheExpirationTime);
+                // Redis::set('post:detail:'.$post_id, json_encode($post));
+                // Redis::expire('post:detail:'.$post_id, $this->cacheExpirationTime);
                 return $post;
             }
             else{
                 if($post->status == CONSTANT::STATUS_ACTIVATED && $post->visibility == CONSTANT::STATUS_PUBLIC){
-                    Redis::set('post:detail:'.$post_id, json_encode($post));
-                    Redis::expire('post:detail:'.$post_id, $this->cacheExpirationTime);
+                    // Redis::set('post:detail:'.$post_id, json_encode($post));
+                    // Redis::expire('post:detail:'.$post_id, $this->cacheExpirationTime);
                     return $post;
                 }
                 else return null;
@@ -362,7 +362,7 @@ class BusinessServiceImp implements BusinessService
 
         if($post == null) return false;
 
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();
 
         if($user->id == $post->user_id || $user->role == CONSTANT::ROLE_SUPER_ADMIN){
 
@@ -375,6 +375,7 @@ class BusinessServiceImp implements BusinessService
                 $imagePath = request('image_url')->store('post_cover', 'public');
             }
 
+            //get newly added image
             $content_image_path = array();
             if(request('contentImage')){
                 $files = request('contentImage');
@@ -385,6 +386,7 @@ class BusinessServiceImp implements BusinessService
                 }
             }
 
+            //get previous uploaded image
             if(request('originalImage')){
                 $files = request('originalImage');
                 foreach($files as $image){
@@ -406,19 +408,6 @@ class BusinessServiceImp implements BusinessService
 
             $res=Post_image::where('post_id',$post_id)->delete();
 
-            // $count = 1;
-            // foreach($content_image_path as $path){
-
-                // $post->post_image()->create([
-                //     'content_image'=>$path, 
-                //     'order'=>$count
-                // ]);
-
-            //     $count++;
-            // }
-
-            
-            
             for($i=0; $i<sizeof($content_image_path); $i++){
                 $post->post_image()->create([
                     'content_image'=>$content_image_path[$i], 
@@ -443,7 +432,7 @@ class BusinessServiceImp implements BusinessService
 
         if($post == null) return false;
 
-        $user = Auth::user();
+        $user = Auth::guard('api')->user();
 
         if($user->id == $post->user_id || $user->role == CONSTANT::ROLE_SUPER_ADMIN){
             
